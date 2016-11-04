@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AudioContext</title>
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            height:100%;
+            background-color: #272822;
+            text-align: center;
+        }
+        canvas{margin: 0 auto;}
+    </style>
+</head>
+<body>
+<canvas id='canvas' width="800" height="600"></canvas>
+<script type="text/javascript">
+    "use strict";
+    const songArray = "isnw.mp3";
+    const context = new AudioContext();
+    // 创建一个 Source 节点
+    const source = context.createBufferSource();
+    const analyser = context.createAnalyser();//创建获取频谱能量值的分析器
+    //将分析器与destination连接，这样才能形成到达扬声器的通路
+    source.connect(analyser);
+    analyser.connect(context.destination);
+    source.loop = false;
+
+    const canvas = document.getElementById('canvas'),
+        capYPositionArray = [],
+        width = canvas.width,
+        height = canvas.height,
+        Context = canvas.getContext('2d'),
+        gradient = Context.createLinearGradient(0, 300, 0, height);
+    gradient.addColorStop(1, '#00ff00');
+    gradient.addColorStop(0.7, '#ffff00');
+    gradient.addColorStop(0, '#ff0000');
+    let setTime = null;
+
+    fetch(songArray).then(function(response) {
+        return response.arrayBuffer();
+    }).then(function(data) {
+        return new Promise(function(resolve, reject) {
+            context.decodeAudioData(data, function(buffer) {
+                resolve(buffer);
+            },function(){
+                reject();
+            });
+        });
+    }).then(function(buffer){
+        source.buffer = buffer;
+        source.start(0);
+        setTime = requestAnimationFrame(drawMeter);
+    },function(error){
+        console.error(error);
+    });
+
+    function drawMeter() {
+        const array = new Uint8Array(analyser.frequencyBinCount);//采样频率
+        analyser.getByteFrequencyData(array);
+        Context.clearRect(0, 0, width, height);
+        for (var i = 0; i < array.length; i++) {
+            var value = array[i];
+            if (capYPositionArray.length < array.length) {
+                capYPositionArray.push(value);
+            }
+            Context.fillStyle = "#fff";
+            if (value < capYPositionArray[i]) {
+                Context.fillRect(i, height - (--capYPositionArray[i]), 1, 1);
+            } else {
+                Context.fillRect(i, height - value, 1, 1);
+                capYPositionArray[i] = value;
+            }
+            Context.fillStyle = gradient;
+            Context.fillRect(i, height - value  , 1, height);
+        }
+        setTime = requestAnimationFrame(drawMeter);
+    }
+</script>
+</body>
+</html>

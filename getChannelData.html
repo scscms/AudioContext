@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>getChannelData</title>
+</head>
+<body>
+<canvas id="canvas" width="800" height="100"></canvas>
+<audio id="audio" autoplay src="isnw.mp3"></audio>
+<br/>
+<input type="button" onclick="audio.play()" value="播放" />
+<input type="button" onclick="audio.pause()" value="暂停" />
+<script type="text/javascript">
+    const context = new AudioContext();
+    const media = context.createMediaElementSource(document.getElementById("audio"));
+    //创建脚本处理节点 createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels);
+    const processor = context.createScriptProcessor(4096,1,1);//256, 512, 1024, 2048, 4096, 8192, 16384
+
+    const width = canvas.width,height = canvas.height;
+    const Context = canvas.getContext("2d");
+    Context.translate(0.5,height / 2 + 0.5);
+    //连接：媒体节点→控制节点→输出源
+    media.connect(processor);
+    processor.connect(context.destination);
+    //控制节点的过程处理
+    processor.onaudioprocess = function(e){
+        //获取输入和输出的数据缓冲区
+        let input = e.inputBuffer.getChannelData(0);
+        let output = e.outputBuffer.getChannelData(0);
+        //将输入数缓冲复制到输出缓冲上
+        for(let i = 0;i < input.length;i ++)output[i]=input[i];
+        //将缓冲区的数据绘制到Canvas上
+        Context.clearRect(-0.5,-height / 2 - 0.5,width,height);
+        Context.beginPath();
+        for(let i = 0;i < width;i ++)
+            Context.lineTo(i,height / 2 * output[output.length * i / width|0]);
+        Context.stroke();
+    };
+</script>
+</body>
+</html>

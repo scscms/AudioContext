@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>createOscillator</title>
+</head>
+<body>
+<script type="text/javascript">
+    const audioCtx = new AudioContext();
+    const obj ={65:256,83:288,68:320,70:341,71:384,72:426,74:480,75:512,76:542};//为每个键盘位对应一个频率
+    for(let key in obj) {
+        if(obj.hasOwnProperty(key)){
+            let value = obj[key];
+            obj[key] = audioCtx.createOscillator();
+            obj[key].frequency.value = value;
+            obj[key].start();
+        }
+    }
+    document.addEventListener("keydown",function(e){
+        obj[e.keyCode] && obj[e.keyCode].connect(audioCtx.destination);
+    },false);
+    document.addEventListener("keyup",function(e){
+        obj[e.keyCode] && obj[e.keyCode].disconnect();
+    },false);
+</script>
+</body>
+</html>

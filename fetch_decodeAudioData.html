@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ajax_decodeAudioData</title>
+    <style type="text/css">
+        html, body {margin: 0;height:100%;background-color: #272822;}
+    </style>
+</head>
+<body>
+<script type="text/javascript">
+    "use strict";
+    const songArray = "isnw.mp3";
+    const context = new AudioContext();
+    const source = context.createBufferSource();//缓冲源
+    source.connect(context.destination);
+    source.loop = false;
+
+    fetch(songArray).then(function(response) {
+        return response.arrayBuffer();
+    }).then(function(data) {
+        context.decodeAudioData(data).then(function(buffer) {
+            console.log("decodeAudioData");
+            source.buffer = buffer;
+            source.start(0);
+        });
+    });
+</script>
+</body>
+</html>

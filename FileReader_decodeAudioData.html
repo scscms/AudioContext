@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ajax_decodeAudioData</title>
+    <style type="text/css">
+        html, body {margin: 0;height:100%;background-color: #272822;}
+    </style>
+</head>
+<body>
+<input id="fileChooser" type="file" />
+<script type="text/javascript">
+    "use strict";
+    const context = new AudioContext();
+    const source = context.createBufferSource();//缓冲源
+    source.connect(context.destination);
+    source.loop = false;
+
+    const fileChooser = document.getElementById('fileChooser');
+    fileChooser.onchange = function() {
+        if (fileChooser.files[0]){
+            const file = fileChooser.files[0];
+            const fileReader = new FileReader();
+            fileReader.onloadend = function(e) {
+                const fileContent = e.target.result;
+                context.decodeAudioData(fileContent).then(function(buffer) {
+                    console.log("decodeAudioData");
+                    source.buffer = buffer;
+                    source.start(0);
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+    }
+</script>
+</body>
+</html>

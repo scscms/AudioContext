@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ajax_decodeAudioData</title>
+    <style type="text/css">
+        html, body {margin: 0;height:100%;background-color: #272822;}
+    </style>
+</head>
+<body>
+<script type="text/javascript">
+    "use strict";
+    const songArray = "isnw.mp3";
+    const context = new AudioContext();
+    const source = context.createBufferSource();//缓冲源
+    source.connect(context.destination);
+    source.loop = false;//是否循环
+
+    const request = new XMLHttpRequest();
+    request.open('GET', songArray, true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+        console.log("onload");
+        context.decodeAudioData(request.response, function(buffer) {
+            console.log("decodeAudioData");
+            source.buffer = buffer;
+            source.start(0);
+        },function(e){
+            console.log("Error with decoding audio data" + e.err);
+        });
+    };
+    request.send();
+</script>
+</body>
+</html>

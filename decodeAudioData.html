@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>decodeAudioData</title>
+    <style type="text/css">
+        html, body {margin: 0;height:100%;text-align:center;background-color: #272822;}
+        canvas{margin: 0 auto;}
+        button,select{display: none}
+    </style>
+</head>
+<body>
+<div class="dialog">
+    <input id="fileChooser" multiple="multiple" accept="audio/mp3" type="file" />
+    <select name="song_select"></select>
+    <select name="effect_select">
+        <option value="0">单线效果</option>
+        <option value="1">密线效果</option>
+        <option value="2">竖线+帽子</option>
+        <option value="3">四方柱子</option>
+        <option value="4">柱子+帽子</option>
+        <option value="5">柱子倒影</option>
+        <option value="6">火焰效果</option>
+        <option value="7">圆圈菊花</option>
+    </select>
+    <button type="button">暂停</button>
+</div>
+<canvas id="canvas" width="800" height="600"></canvas>
+<script type="text/javascript">
+    "use strict";
+    const context = new AudioContext();
+    let analyser,source;
+
+    const canvas = document.getElementById("canvas");
+    const canvasObj = {
+        width   : canvas.width,
+        height  : canvas.height,
+        context : canvas.getContext("2d"),
+        capYArray:new Array(1024).fill(0),//帽子
+        style:0,//效果序号
+        animation:null
+    };
+    const gradient = canvasObj.context.createLinearGradient(0,250, 0, canvasObj.height);
+    gradient.addColorStop(1, '#00ff00');
+    gradient.addColorStop(.7, '#ffff00');
+    gradient.addColorStop(0, '#ff0000');
+
+    let songArray = [];//选择的歌曲数组
+    let songIndex = 0;//当前播放的歌曲序号
+    let bufferArray = [];//歌曲缓存数组
+    let frequencyArray = [];//采样频率缓冲数组
+    const song_select = document.querySelector("select[name='song_select']");
+
+    document.addEventListener("change",function(e){
+        const tag = e.target;
+        if(tag.matches("#fileChooser")){
+            songArray = Array.from(tag.files);
+            decodeData();
+        }else if(tag.matches("select[name='song_select']")){
+            source.onended = null;
+            playSong(songIndex = tag.value >> 0);
+        }else if(tag.matches("select[name='effect_select']")){
+            canvasObj.style = tag.value >> 0;
+        }
+    },false);
+    document.addEventListener("click",function(e){
+        const tag = e.target;
+        if(tag.matches("button")){
+            if(tag.textContent.includes("播放")){
+                analyser.connect(context.destination);
+                tag.textContent = "暂停";
+            }else{
+                analyser.disconnect(context.destination);
+                tag.textContent = "播放";
+            }
+        }
+    },false);
+
+    //解密歌曲存在数组里
+    function decodeData(){
+        if(songArray.length){
+            const file = songArray.shift();
+            const fileReader = new FileReader();
+            fileReader.onloadend = function(e) {
+                const fileContent = e.target.result;
+                context.decodeAudioData(fileContent).then(function(buffer) {
+                    song_select.options.add(new Option(file.name,bufferArray.length));
+                    bufferArray.push(buffer);
+                    if(bufferArray.length == 1){
+                        document.querySelector("button").style.display = "inline-block";
+                        Array.from(document.querySelectorAll("select")).forEach(function(obj){
+                            obj.style.display = "inline-block";
+                        });
+                        playSong(0);//开始播放第一首歌曲的是
+                        canvasObj.animation = requestAnimationFrame(drawMeter);
+                    }
+                    decodeData();
+                });
+            };
+            fileReader.onerror = function(){
+                decodeData();
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+    }
+
+    //指定序号播放歌曲
+    function playSong(){
+        songIndex >= bufferArray.length && (songIndex = 0);
+        source && source.stop(0);//先停止之前歌曲
+        source = context.createBufferSource();
+        analyser = context.createAnalyser();//创建获取频谱能量值的分析器
+        source.loop = false;
+        source.buffer = bufferArray[songIndex];//缓冲数据
+        console.log("歌曲：",songIndex);
+        source.connect(analyser);
+        analyser.connect(context.destination);
+        canvasObj.capYArray.fill(0);
+        source.start(0);
+        source.onended = function() {
+            playSong(++songIndex);//自动下一曲
+        };
+        frequencyArray = new Uint8Array(analyser.frequencyBinCount);
+        document.querySelector("select").value = songIndex;
+    }
+
+    //绘画音乐动画
+    function drawMeter() {
+        analyser.getByteFrequencyData(frequencyArray);
+        let ctx = canvasObj.context;
+        ctx.clearRect(0, 0, canvasObj.width, canvasObj.height);
+        switch (canvasObj.style){
+            case 0:
+                ctx.beginPath();
+                ctx.moveTo(0,canvasObj.height);
+                for (let i = frequencyArray.length; i --;) {
+                    ctx.lineTo(i,canvasObj.height - frequencyArray[i]);
+                }
+                ctx.strokeStyle = "#ffff00";
+                ctx.stroke();
+                break;
+            case 1:
+            case 2:
+                if(canvasObj.style == 2){
+                    ctx.fillStyle = "#fff";//加上帽子
+                    for (let i = frequencyArray.length; i --;) {
+                        canvasObj.capYArray[i] = frequencyArray[i] < canvasObj.capYArray[i] ? canvasObj.capYArray[i] - 1 : frequencyArray[i];
+                        ctx.fillRect(i, canvasObj.height - canvasObj.capYArray[i], 1, 2);
+                    }
+                }
+                ctx.fillStyle = gradient;
+                for (let i = frequencyArray.length; i --;) {
+                    ctx.fillRect(i,canvasObj.height - frequencyArray[i],1,canvasObj.height);
+                }
+                break;
+            case 3:
+            case 4:
+                if(canvasObj.style == 4){
+                    ctx.fillStyle = "#fff";//加上帽子
+                    for (let i = frequencyArray.length; i --;) {
+                        canvasObj.capYArray[i] = frequencyArray[i*12] < canvasObj.capYArray[i] ? canvasObj.capYArray[i] - 1 : frequencyArray[i*12];
+                        ctx.fillRect(i*12, canvasObj.height - canvasObj.capYArray[i], 10, 2);
+                    }
+                }
+                ctx.fillStyle = gradient;
+                for (let i = frequencyArray.length; i --;) {
+                    ctx.fillRect(i*12,canvasObj.height - frequencyArray[i*12],10,canvasObj.height);
+                }
+                break;
+            case 5:
+                ctx.fillStyle = "#666";
+                for (let i = frequencyArray.length; i --;) {
+                    ctx.fillRect(i * 12, canvasObj.height - frequencyArray[i*12] - 250  , 10, frequencyArray[i*12]);
+                }
+                ctx.fillStyle = "#333";
+                for (let i = frequencyArray.length; i --;) {
+                    ctx.fillRect(i * 12, canvasObj.height - 250  , 10, frequencyArray[i*12]);
+                }
+                break;
+            case 6:
+                lines(0,frequencyArray,ctx);
+                break;
+            case 7:
+                circle(frequencyArray,"#ff0",ctx,1);
+                circle(frequencyArray,"#f60",ctx,0.9);
+                circle(frequencyArray,"#f30",ctx,0.7);
+                circle(frequencyArray,"#333",ctx,0.6);
+                break;
+        }
+        canvasObj.animation = requestAnimationFrame(drawMeter);
+    }
+
+    let color_array = ["f8fd8c","f8e474","f8b94a","f6811d","e45c08","ec670c","dd5004","c53802","ab2302","901202","7c0b02","670b04","5d0b06","430b0b","320e0e","2c1010","2a1110"];
+    function lines(n,arr,ctx){
+        if(n < color_array.length){
+            ctx.moveTo(0,0);
+            ctx.beginPath();
+            for (let i = arr.length;i -= 2;) {
+                ctx.lineTo(i,canvasObj.height - arr[i] - 3 * n);
+            }
+            ctx.strokeStyle = "#"+color_array[n];
+            ctx.stroke();
+            lines(n + 1,arr,ctx);
+        }
+    }
+    function circle(array,color,ctx,size){
+        ctx.moveTo(0,0);
+        ctx.beginPath();
+        for (let i = 100,l = 0; i <= 820; i += 2,l++) {
+            let radian = (2 * Math.PI / 360) * (l + 45);//手动移动90度
+            const x = 400 + Math.sin(radian) * (array[i] + 40) * size;
+            const y = 300 - Math.cos(radian) * (array[i] + 40) * size;
+            ctx.lineTo(x,y);
+        }
+        ctx.strokeStyle = color;
+        ctx.closePath();
+        ctx.stroke();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<audio id="audio" autoplay src="isnw.mp3"></audio>
+<input type='button' onclick='audio.play()' value='播放' />
+<input type='button' onclick='audio.pause()' value='暂停' />
+
+<script type="text/javascript">
+    const array = ["lowpass","highpass","bandpass","lowshelf","highshelf","peaking","notch","allpass"];
+    // 创建一个 AudioContext 环境
+    const context = new AudioContext();
+    const source = context.createMediaElementSource(audio);
+    let FilterNode = context.createBiquadFilter('lowpass');
+    source.connect(FilterNode);
+    FilterNode.connect(context.destination);
+</script>
+</body>
+</html>
