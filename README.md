@@ -1,6 +1,6 @@
 # AudioContext 可视化效果<sup>shine</sup>
 
-![image](https://github.com/scscms/AudioContext/raw/master/images/vision1.jpg)
+![image](https://github.com/scscms/AudioContext/raw/master/vision1.jpg)
 
 ## 前言
 
@@ -100,6 +100,6 @@ mute.onclick = function() {
 
 ### AudioContext 可视化效果
 
-![image](https://github.com/scscms/AudioContext/raw/master/images/vision2.jpg)
+![image](https://github.com/scscms/AudioContext/raw/master/vision2.jpg)
 
 [查看文件](decodeAudioData.html)
